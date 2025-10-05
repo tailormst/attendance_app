@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load attendance_extras %}
+
+{% block title %}Mark Attendance - Attendance Management System{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="bi bi-calendar-plus"></i> Mark Attendance</h2>
+            <p class="text-muted">Select date and mark attendance for all employees</p>
+        </div>
+    </div>
+
+    <!-- Date Selection -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-calendar"></i> Select Date</h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" class="d-flex align-items-center">
+                        <div class="me-3">
+                            <label for="date" class="form-label">Date:</label>
+                            <input type="date" class="form-control" id="date" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                        </div>
+                        <div>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-search"></i> Load Attendance
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Form -->
+    {% if employees %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-people"></i> Mark Attendance for {{ selected_date|date:"F d, Y" }}</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="date" value="{{ selected_date|date:'Y-m-d' }}">
+                        
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Employee Name</th>
+                                        <th>Employee ID</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for employee in employees %}
+                                    <tr>
+                                        <td>{{ employee.name }}</td>
+                                        <td><span class="badge bg-secondary">{{ employee.emp_id }}</span></td>
+                                        <td>{{ employee.role }}</td>
+                                        <td>
+                                            <select name="employee_{{ employee.id }}" class="form-select" required>
+                                                <option value="">Select Status</option>
+                                                <option value="Present" {% if attendance_data|lookup:employee.id == 'Present' %}selected{% endif %}>
+                                                    Present
+                                                </option>
+                                                <option value="Absent" {% if attendance_data|lookup:employee.id == 'Absent' %}selected{% endif %}>
+                                                    Absent
+                                                </option>
+                                                <option value="Leave" {% if attendance_data|lookup:employee.id == 'Leave' %}selected{% endif %}>
+                                                    Leave
+                                                </option>
+                                                <option value="Holiday" {% if attendance_data|lookup:employee.id == 'Holiday' %}selected{% endif %}>
+                                                    Holiday
+                                                </option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="bi bi-check-circle"></i> Save Attendance
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-people display-1 text-muted"></i>
+                    <h5 class="text-muted">No employees found</h5>
+                    <p class="text-muted">Please add employees first from the dashboard.</p>
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary">
+                        <i class="bi bi-arrow-left"></i> Go to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit form when date changes
+    document.getElementById('date').addEventListener('change', function() {
+        this.form.submit();
+    });
+</script>
+{% endblock %}
