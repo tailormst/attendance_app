@@ -100,11 +100,13 @@ def debug_view(request):
 
 @login_required
 def dashboard(request):
-    employees = Employee.objects.all()
+    employees = Employee.objects.filter(owner=request.user)
     if request.method == 'POST':
         form = EmployeeForm(request.POST)
         if form.is_valid():
-            form.save()
+            employee = form.save(commit=False)
+            employee.owner = request.user
+            employee.save()
             messages.success(request, 'Employee added successfully!')
             return redirect('dashboard')
     else:
@@ -119,7 +121,7 @@ def dashboard(request):
 
 @login_required
 def mark_attendance(request):
-    employees = Employee.objects.all()
+    employees = Employee.objects.filter(owner=request.user)
     selected_date = request.GET.get('date', timezone.now().date())
     
     if request.method == 'POST':
@@ -129,7 +131,7 @@ def mark_attendance(request):
             return redirect('mark_attendance')
         
         # Get existing attendance for the date
-        existing_attendance = {att.employee.id: att for att in Attendance.objects.filter(date=date)}
+        existing_attendance = {att.employee.id: att for att in Attendance.objects.filter(date=date, employee__owner=request.user)}
         
         for employee in employees:
             status = request.POST.get(f'employee_{employee.id}')
@@ -153,7 +155,7 @@ def mark_attendance(request):
     # Get attendance for selected date
     attendance_data = {}
     if selected_date:
-        attendance_records = Attendance.objects.filter(date=selected_date)
+        attendance_records = Attendance.objects.filter(date=selected_date, employee__owner=request.user)
         attendance_data = {att.employee.id: att.status for att in attendance_records}
     
     context = {
@@ -170,7 +172,7 @@ def attendance_report(request):
     year = request.GET.get('year', timezone.now().year)
     
     # Get all employees
-    employees = Employee.objects.all()
+    employees = Employee.objects.filter(owner=request.user)
     
     # Calculate attendance summary
     summary_data = []
@@ -223,7 +225,7 @@ def attendance_report(request):
 
 @login_required
 def employee_detail(request, employee_id):
-    employee = get_object_or_404(Employee, id=employee_id)
+    employee = get_object_or_404(Employee, id=employee_id, owner=request.user)
     month = request.GET.get('month', timezone.now().month)
     year = request.GET.get('year', timezone.now().year)
     
@@ -249,7 +251,7 @@ def export_report(request):
     year = request.GET.get('year', timezone.now().year)
     
     # Get all employees
-    employees = Employee.objects.all()
+    employees = Employee.objects.filter(owner=request.user)
     
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="attendance_report_{year}_{month}.csv"'
